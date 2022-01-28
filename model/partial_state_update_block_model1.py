@@ -13,16 +13,18 @@ partial_state_update_block = [
     {
         'policies': {
             'grants_policy': grants_policy,
-            'values_policy': values_policy,
+            'curation_policy': curation_policy,
             'participation_policy': participation_policy
         },
         'variables': {
             'grant_cap': update_grants,
             'valuable_projects': update_valuable_projects,
             'unsound_projects': update_unsound_projects,
-            'yes_votes': update_yes_votes,
-            'no_votes': update_no_votes,
             'voters': update_voters,
+            'stakers': update_stakers,
+            'builders': update_builders,
+            'market_makers': update_market_makers,
+            'datasets': update_datasets,
             'dao_members': update_dao_members
         },
     },

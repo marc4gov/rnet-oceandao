@@ -1,6 +1,8 @@
 import random
 import math
 
+from model.parts.agents.util.treasury.oceanrounds import *
+
 def grants_policy(params, step, sH, s):
     """
     Update the grants state.
@@ -23,53 +25,74 @@ def projects_policy(params, step, sH, s):
     current_timestep = len(sH)
     timestep_per_day = 1
     timestep_per_month = 30
+    round = s['round']
+    projects = s['projects']
 
     # new Grants round
     if (current_timestep % timestep_per_month) == 0:
-        return ({'projects': 0})
+      round += 1
+      round_stats = round11_stats
+      if round % 3 == 0:
+        round_stats = round12_stats
+      if round % 3 == 1:
+        round_stats = round13_stats
+      projects = round_stats['granted']
+      value_factor = random.choice([0.3, 0.4, 0.5, 0.6, 0.7])
+
+      return ({
+        'projects': projects,
+        'valuable_projects': math.floor(value_factor * projects),
+        'unsound_projects': math.floor((1-value_factor) * projects),
+        'round': round
+      })
+
+    return({
+        'projects': projects,
+    })
     
-    # increase projects by day
-    return ({'projects': random.randint(0,1) + s['projects']})
-
-
-def values_policy(params, step, sH, s):
+def curation_policy(params, step, sH, s):
     """
-    What kind of projects deliver good value?
+    How to assess projects?
     """
     current_timestep = len(sH)
-    timestep_per_day = 1
+    timestep_per_week = 7
     timestep_per_month = 30
 
     # new Grants round
     if (current_timestep % timestep_per_month) == 0:
+
       return ({
-          'valuable_projects': 0,
-          'unsound_projects': 0,
           'yes_votes': math.floor(0.8 * s['voters']),
           'no_votes': math.floor(0.2 * s['voters']),
       })
 
-    # every day we assess the projects to either valuable or unsound and adjust the project properties and vote signal accordingly
+    # every week we assess the projects to either promising or not and adjust the project properties and vote signal accordingly
 
-    valuable = math.floor(random.choice(params['dataset_ratio']) * s['projects'])
-    valuable_increment = 1
-    if valuable <= s['valuable_projects'] and s['valuable_projects'] > 0:
-      valuable_increment = -1
-    unsound_increment = 1
-    unsound = math.floor(random.choice(params['unsound_ratio']) * s['projects'])
-    if unsound <= s['unsound_projects'] and s['unsound_projects'] > 0:
-      unsound_increment = -1  
-    projects = s['projects'] if s['projects'] > 0 else 1
-    yes_votes = s['yes_votes'] if s['yes_votes'] > 0 else 1 # divison by zero hack
-    no_votes = s['no_votes'] if s['no_votes'] > 0 else 1
-    value_ratio = (valuable - unsound) / projects
+    if (current_timestep % timestep_per_week) == 0:
+      valuable = random.choice(params['dataset_ratio'])
+      if valuable > 0.5:
+        valuable_increment = 1
+      else:
+        valuable_increment = -1
+      unsound = random.choice(params['unsound_ratio'])
+      if unsound > 0.5:
+        unsound_increment = 1
+      else:
+        unsound_increment = -1
+
+      projects = s['projects'] if s['projects'] > 0 else 1
+      yes_votes = s['yes_votes'] if s['yes_votes'] > 0 else 1 # divison by zero hack
+      no_votes = s['no_votes'] if s['no_votes'] > 0 else 1
+      value_ratio = (valuable - unsound) / projects
+      
+      return ({
+          'valuable_projects': s['valuable_projects'] + valuable_increment,
+          'unsound_projects': s['unsound_projects'] + unsound_increment,
+          'yes_votes': math.floor(yes_votes * (1 + value_ratio)),
+          'no_votes': math.floor(no_votes * (1 - value_ratio)),
+      })
     
-    return ({
-        'valuable_projects': s['valuable_projects'] + valuable_increment,
-        'unsound_projects': s['unsound_projects'] + unsound_increment,
-        'yes_votes': math.floor(s['yes_votes'] * (1 + value_ratio)),
-        'no_votes': math.floor(s['no_votes'] * (1 - value_ratio)),
-    })
+
 
 def participation_policy(params, step, sH, s):
     """
@@ -123,6 +146,15 @@ def update_no_votes(params, step, sH, s, _input):
 
 def update_voters(params, step, sH, s, _input):
   return ('voters', _input['voters'])
+
+def update_stakers(params, step, sH, s, _input):
+  return ('stakers', _input['stakers'])
+
+def update_builders(params, step, sH, s, _input):
+  return ('builders', _input['builders'])
+
+def update_market_makers(params, step, sH, s, _input):
+  return ('market_makers', _input['market_makers'])
 
 def update_dao_members(params, step, sH, s, _input):
   return ('dao_members', _input['dao_members'])
