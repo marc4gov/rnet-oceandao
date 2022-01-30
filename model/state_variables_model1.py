@@ -15,9 +15,9 @@ genesis_state = {
     'market_makers': 10,
     'grant_cap': 200,
     'projects': projects,
-    'yes_votes': 30,
-    'no_votes': 10,
-    'valuable_projects': 0,
     'unsound_projects': 0,
+    'datasets': 0,
+    'community_projects' : 0,
+    'new_entrants': 0,
     'round': 1,
 }

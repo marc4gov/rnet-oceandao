@@ -18,8 +18,9 @@ partial_state_update_block = [
         },
         'variables': {
             'grant_cap': update_grants,
-            'valuable_projects': update_valuable_projects,
+            'community_projects': update_community_projects,
             'unsound_projects': update_unsound_projects,
+            'new_entrants': update_new_entrants,
             'voters': update_voters,
             'stakers': update_stakers,
             'builders': update_builders,
@@ -34,6 +35,7 @@ partial_state_update_block = [
         },
         'variables': {
             'projects': update_projects,
+            'round': update_round
         }
     }
 ]
