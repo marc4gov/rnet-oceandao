@@ -1,8 +1,16 @@
+import random
+
+dataset_ratio = random.choice([0.3, 0.4, 0.5])
+community_ratio = random.choice([0.3, 0.4, 0.5])
+new_entrant_ratio = random.choice([0.3, 0.4, 0.5])
+unsound_ratio = random.choice([0.3, 0.4, 0.5])
 
 params = {
-    'dataset_ratio': [0.6, 0.1],
-    'community_ratio': [0.1, 0.2],
-    'new_entrant_ratio': [0.1, 0.2],
-    'unsound_ratio': [0.2, 0.5],
+    'dataset_ratio': [dataset_ratio],
+    'community_ratio': [community_ratio],
+    'new_entrant_ratio': [new_entrant_ratio],
+    'unsound_ratio': [unsound_ratio],
+    'recurring_projects': [5, 10, 15],
+    'projects_in_round': [20, 25, 30]
 }
 
