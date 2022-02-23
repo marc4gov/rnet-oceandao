@@ -178,13 +178,13 @@ def curation_policy(params, step, sH, s):
     mu, sigma = 0.8 * (current_timestep - (round - 1) * timestep_per_month)/timestep_per_month, 0.1
     x = np.random.normal(mu,sigma,5)
     unsound_chance = random.choice(list(x))
-    if unsound_chance > 0.65:
+    if unsound_chance > 0.8:
       if new_projects > 0:
         new_projects -= 1
         unsound_projects += 1
     unsound_chance = random.choice(list(x))
     # recurring projects have slightly less chance of failure
-    if unsound_chance > 0.8:
+    if unsound_chance > 0.85:
       if recurring_projects > 0:
         recurring_projects -= 1
         # kind of recurring project determines chance of getting unsound
@@ -267,7 +267,9 @@ def participation_policy(params, step, sH, s):
       prev_unsound_projects = sH[current_timestep - 3][0]['unsound_projects']
       prev_existing_projects = sH[current_timestep - 3][0]['existing_projects']
       prev_veteran_projects = sH[current_timestep - 3][0]['veteran_projects']
-      
+      prev_experienced_projects = sH[current_timestep - 3][0]['experienced_projects']
+      prev_exp_projects = sum([prev_experienced_projects['level 1'], prev_experienced_projects['level 2'], prev_experienced_projects['level 3']])
+      exp_projects = sum([experienced_projects['level 1'], experienced_projects['level 2'], experienced_projects['level 3']])
 
       prev_datasets = prev_datasets if prev_datasets > 0 else 1
       growth_ratio_dataset = (dataset_projects - prev_datasets) / prev_datasets
@@ -281,18 +283,18 @@ def participation_policy(params, step, sH, s):
       prev_recurring_projects = prev_recurring_projects if prev_recurring_projects > 0 else 1
       growth_ratio_recurring = (recurring_projects - prev_recurring_projects) / prev_recurring_projects
 
-      prev_existing_projects = prev_existing_projects if prev_existing_projects > 0 else 1
-      growth_ratio_existing = (existing_projects - prev_existing_projects) / prev_existing_projects
+      prev_exp_projects = prev_exp_projects if prev_exp_projects > 0 else 1
+      growth_ratio_experienced = (exp_projects - prev_exp_projects) / prev_exp_projects
 
       prev_unsound_projects = prev_unsound_projects if prev_unsound_projects > 0 else 1
       growth_ratio_unsound = (unsound_projects - prev_unsound_projects) / prev_unsound_projects
     
       # determine the change in stakeholders
       voters = math.floor((1 + 0.1 * (growth_ratio_recurring + growth_ratio_new_entrants - growth_ratio_unsound)/3) * s['voters'])
-      growth_ratio_market_makers = 0.1 * (growth_ratio_community * 2 + growth_ratio_dataset -  growth_ratio_unsound)/3
+      growth_ratio_market_makers = 0.1 * (growth_ratio_community * 2 + growth_ratio_dataset * 2 -  growth_ratio_unsound)/5
       market_makers = math.floor((1 + 0.1 * growth_ratio_market_makers) * s['market_makers'])
       stakers = math.floor((1 + 0.1 * (growth_ratio_dataset - growth_ratio_unsound)/2) * s['stakers'])
-      builders = math.floor((1 + 0.1 * growth_ratio_recurring) * s['builders'])
+      builders = math.floor((1 + 0.1 * growth_ratio_experienced) * s['builders'])
 
       stakers = math.floor((1 + 0.2 * (growth_ratio_market_makers * 0.8)) * stakers)
 
