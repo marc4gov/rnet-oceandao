@@ -5,9 +5,11 @@ import pandas as pd
 
 def monte_carlo_plot(dfs, column):
   fig, ax = plt.subplots()
-  x = pd.Series(dfs[0]["timestep"]).values
+  i = 0
   for df in dfs:
-    ax.plot(x, pd.Series(df[column]).values, label='Run '+ str(df['run'][0])) 
+    x = pd.Series(dfs[i]["timestep"]).values
+    ax.plot(x, pd.Series(df[column]).values, label='Run '+ str(df['run'][0]) + "Parameter " + str(df['subset'][0])) 
+    i += 1
   plt.xlabel('Timestep')
   plt.ylabel(column)
   ax.legend()
