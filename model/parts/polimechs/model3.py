@@ -79,7 +79,7 @@ def projects_policy(params, step, sH, s):
         x = np.random.normal(0.5,0.05,5)
         recurring_projects = math.ceil(random.choice(list(x)) * projects)
         existing_projects = recurring_projects
-      else:
+      else: # around 30% chance projects promote, 50% chance they dissappear altogether, chance is decreasing with maturity
         for i in range(s['new_projects']):
           x = random.choice(list(np.random.normal(0.3,0.05,5)))
           if random.random() < x:
@@ -90,32 +90,43 @@ def projects_policy(params, step, sH, s):
           if random.random() < x:
             experienced_projects['level 1'] += 1
             existing_projects -= 1
+          if random.random() > 0.5:
+            existing_projects -= 1
         for i in range(s['experienced_projects']['level 1']):
           x = random.choice(list(np.random.normal(0.3,0.05,5)))
           if random.random() < x:
             experienced_projects['level 2'] += 1
+            experienced_projects['level 1'] -= 1
+          if random.random() > 0.6:
             experienced_projects['level 1'] -= 1
         for i in range(s['experienced_projects']['level 2']):
           x = random.choice(list(np.random.normal(0.25,0.05,5)))
           if random.random() < x:
             experienced_projects['level 3'] += 1
             experienced_projects['level 2'] -= 1
+          if random.random() > 0.7:
+            experienced_projects['level 2'] -= 1
         for i in range(s['experienced_projects']['level 3']):
           x = random.choice(list(np.random.normal(0.25,0.05,5)))
           if random.random() < x:
             veteran_projects += 1
             experienced_projects['level 3'] -= 1
-        for i in range(s['veteran_projects']): #  veteran projects dissappear in time
+          if random.random() > 0.8:
+            experienced_projects['level 3'] -= 1
+        for i in range(s['veteran_projects']): #  veteran projects dissappear in time with around 20% chance
           x = random.choice(list(np.random.normal(0.2,0.05,5)))
           if random.random() < x:
             veteran_projects -= 1
+        # account for the changes
         exp_projects = sum([experienced_projects['level 1'], experienced_projects['level 2'], experienced_projects['level 3']])
         recurring_projects = sum([veteran_projects,exp_projects,existing_projects])
 
+      # account for parameter sweep obligations
       new_projects = math.ceil(params['new_projects_ratio'] * projects)
-      new_projects = recurring_projects + new_projects
-      diff = new_projects - projects
+      projects_n = recurring_projects + new_projects
+      diff = projects_n - projects
       existing_projects -= diff
+      if existing_projects < 0: existing_projects = 0
       
       # determine the distribution of dataset projects (assuming around 50% with 20% standard deviation)
 
@@ -178,13 +189,13 @@ def curation_policy(params, step, sH, s):
     mu, sigma = 0.8 * (current_timestep - (round - 1) * timestep_per_month)/timestep_per_month, 0.1
     x = np.random.normal(mu,sigma,5)
     unsound_chance = random.choice(list(x))
-    if unsound_chance > 0.8:
+    if unsound_chance > 0.65:
       if new_projects > 0:
         new_projects -= 1
         unsound_projects += 1
     unsound_chance = random.choice(list(x))
     # recurring projects have slightly less chance of failure
-    if unsound_chance > 0.85:
+    if unsound_chance > 0.8:
       if recurring_projects > 0:
         recurring_projects -= 1
         # kind of recurring project determines chance of getting unsound
@@ -238,12 +249,13 @@ def participation_policy(params, step, sH, s):
     dataset_projects = s['dataset_projects']
     community_projects = s['community_projects']
     market_makers = s['market_makers']
+    round = s['round']
 
     # new Grants round
     if (current_timestep % timestep_per_month) == 0:
-      # Experiment! market makers are plummeting
-      if s['round'] == 5:
-        market_makers *= 0.1
+      # Experiment: market makers plummeting in round 5
+      if round == 5:
+        market_makers = s['market_makers'] * 0.2
       if s['voters'] >= sH[current_timestep - timestep_per_month][0]['voters']:
         return ({
           'voters': s['voters'],
@@ -263,7 +275,6 @@ def participation_policy(params, step, sH, s):
 
     # every 3 days we determine the growth rate of all kinds of projects
     if (current_timestep % 3) == 0:
-
       prev_datasets = sH[current_timestep - 3][0]['dataset_projects']
       prev_new_entrants = sH[current_timestep - 3][0]['new_projects']
       prev_community_projects = sH[current_timestep - 3][0]['community_projects']
@@ -271,9 +282,7 @@ def participation_policy(params, step, sH, s):
       prev_unsound_projects = sH[current_timestep - 3][0]['unsound_projects']
       prev_existing_projects = sH[current_timestep - 3][0]['existing_projects']
       prev_veteran_projects = sH[current_timestep - 3][0]['veteran_projects']
-      prev_experienced_projects = sH[current_timestep - 3][0]['experienced_projects']
-      prev_exp_projects = sum([prev_experienced_projects['level 1'], prev_experienced_projects['level 2'], prev_experienced_projects['level 3']])
-      exp_projects = sum([experienced_projects['level 1'], experienced_projects['level 2'], experienced_projects['level 3']])
+      
 
       prev_datasets = prev_datasets if prev_datasets > 0 else 1
       growth_ratio_dataset = (dataset_projects - prev_datasets) / prev_datasets
@@ -287,8 +296,8 @@ def participation_policy(params, step, sH, s):
       prev_recurring_projects = prev_recurring_projects if prev_recurring_projects > 0 else 1
       growth_ratio_recurring = (recurring_projects - prev_recurring_projects) / prev_recurring_projects
 
-      prev_exp_projects = prev_exp_projects if prev_exp_projects > 0 else 1
-      growth_ratio_experienced = (exp_projects - prev_exp_projects) / prev_exp_projects
+      prev_existing_projects = prev_existing_projects if prev_existing_projects > 0 else 1
+      growth_ratio_existing = (existing_projects - prev_existing_projects) / prev_existing_projects
 
       prev_unsound_projects = prev_unsound_projects if prev_unsound_projects > 0 else 1
       growth_ratio_unsound = (unsound_projects - prev_unsound_projects) / prev_unsound_projects
@@ -296,7 +305,8 @@ def participation_policy(params, step, sH, s):
       # determine the change in stakeholders
       voters = math.floor((1 + 0.1 * (growth_ratio_recurring + growth_ratio_new_entrants - growth_ratio_unsound)/3) * s['voters'])
       growth_ratio_market_makers = 0.1 * (growth_ratio_community * 2 + growth_ratio_dataset -  growth_ratio_unsound)/3
-      market_makers = math.floor((1 + 0.1 * growth_ratio_market_makers) * market_makers)
+      market_makers = math.floor((1 + 0.1 * growth_ratio_market_makers) * s['market_makers'])
+    
       stakers = math.floor((1 + 0.1 * (growth_ratio_dataset - growth_ratio_unsound)/2) * s['stakers'])
       builders = math.floor((1 + 0.1 * growth_ratio_recurring) * s['builders'])
 

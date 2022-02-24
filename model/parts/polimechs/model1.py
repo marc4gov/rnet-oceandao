@@ -79,7 +79,7 @@ def projects_policy(params, step, sH, s):
         x = np.random.normal(0.5,0.05,5)
         recurring_projects = math.ceil(random.choice(list(x)) * projects)
         existing_projects = recurring_projects
-      else:
+      else: # around 30% chance projects promote, 50% chance they dissappear altogether, chance is decreasing with maturity
         for i in range(s['new_projects']):
           x = random.choice(list(np.random.normal(0.3,0.05,5)))
           if random.random() < x:
@@ -90,32 +90,43 @@ def projects_policy(params, step, sH, s):
           if random.random() < x:
             experienced_projects['level 1'] += 1
             existing_projects -= 1
+          if random.random() > 0.5:
+            existing_projects -= 1
         for i in range(s['experienced_projects']['level 1']):
           x = random.choice(list(np.random.normal(0.3,0.05,5)))
           if random.random() < x:
             experienced_projects['level 2'] += 1
+            experienced_projects['level 1'] -= 1
+          if random.random() > 0.6:
             experienced_projects['level 1'] -= 1
         for i in range(s['experienced_projects']['level 2']):
           x = random.choice(list(np.random.normal(0.25,0.05,5)))
           if random.random() < x:
             experienced_projects['level 3'] += 1
             experienced_projects['level 2'] -= 1
+          if random.random() > 0.7:
+            experienced_projects['level 2'] -= 1
         for i in range(s['experienced_projects']['level 3']):
           x = random.choice(list(np.random.normal(0.25,0.05,5)))
           if random.random() < x:
             veteran_projects += 1
             experienced_projects['level 3'] -= 1
-        for i in range(s['veteran_projects']): #  veteran projects dissappear in time
+          if random.random() > 0.8:
+            experienced_projects['level 3'] -= 1
+        for i in range(s['veteran_projects']): #  veteran projects dissappear in time with around 20% chance
           x = random.choice(list(np.random.normal(0.2,0.05,5)))
           if random.random() < x:
             veteran_projects -= 1
+        # account for the changes
         exp_projects = sum([experienced_projects['level 1'], experienced_projects['level 2'], experienced_projects['level 3']])
         recurring_projects = sum([veteran_projects,exp_projects,existing_projects])
 
+      # account for parameter sweep obligations
       new_projects = math.ceil(params['new_projects_ratio'] * projects)
-      new_projects = recurring_projects + new_projects
-      diff = new_projects - projects
+      projects_n = recurring_projects + new_projects
+      diff = projects_n - projects
       existing_projects -= diff
+      if existing_projects < 0: existing_projects = 0
       
       # determine the distribution of dataset projects (assuming around 50% with 20% standard deviation)
 
@@ -259,7 +270,6 @@ def participation_policy(params, step, sH, s):
 
     # every 3 days we determine the growth rate of all kinds of projects
     if (current_timestep % 3) == 0:
-
       prev_datasets = sH[current_timestep - 3][0]['dataset_projects']
       prev_new_entrants = sH[current_timestep - 3][0]['new_projects']
       prev_community_projects = sH[current_timestep - 3][0]['community_projects']
